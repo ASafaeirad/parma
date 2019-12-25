@@ -1,34 +1,7 @@
-import * as path from 'path';
-import * as fs from 'fs';
-import * as FabricCAServices from 'fabric-ca-client';
-import { existsOrCreateDir } from './utils'
-import { FileSystemWallet, X509WalletMixin } from 'fabric-network';
+import { getCC, getCA, getWallet } from './utils';
+import { X509WalletMixin } from 'fabric-network';
 
-function getCC(peer: string, { context = '../network' } = {}) {
-  const ccPath = path.resolve(__dirname, context, peer);
-  const ccFile = fs.readFileSync(ccPath, 'utf8');
-  return JSON.parse(ccFile);
-}
-
-function getCA(cc: any) {
-    const caInfo = cc.certificateAuthorities['ca.org1.example.com'];
-    const caTLSCACerts = caInfo.tlsCACerts.pem;
-    return new FabricCAServices(caInfo.url, { trustedRoots: caTLSCACerts, verify: false }, caInfo.caName);
-}
-
-function getWallet() {
-    const walletPath = path.join(process.cwd(), 'wallet');
-    existsOrCreateDir(walletPath);
-    console.log(`Wallet path: ${walletPath}`);
-    return new FileSystemWallet(walletPath);
-}
-
-async function createIdentity(ca: FabricCAServices) {
-  const enrollment = await ca.enroll({ enrollmentID: 'admin', enrollmentSecret: 'adminpw' });
-  return X509WalletMixin.createIdentity('Org1MSP', enrollment.certificate, enrollment.key.toBytes());
-}
-
-async function main() {
+async function enrollAdmin() {
   try {
     const cc = getCC('org1.connection.json');
     const ca = getCA(cc);
@@ -40,7 +13,9 @@ async function main() {
       return;
     }
 
-    const identity = await createIdentity(ca);
+    const enrollment = await ca.enroll({ enrollmentID: 'admin', enrollmentSecret: 'adminpw' });
+    const identity = await X509WalletMixin.createIdentity('Org1MSP', enrollment.certificate, enrollment.key.toBytes());;
+
     await wallet.import('admin', identity);
 
     console.log('Successfully enrolled admin user "admin" and imported it into the wallet');
@@ -50,4 +25,4 @@ async function main() {
   }
 }
 
-main();
+enrollAdmin();
