@@ -20,15 +20,6 @@ yarn-debug.log*
 yarn-error.log*
 report.*.json
 
-# privacy
-.env
-.env.development
-.env.test
-.env.production
-.env.development.local
-.env.test.local
-.env.production.local
-
 # Optional npm cache directory
 .npm
 
