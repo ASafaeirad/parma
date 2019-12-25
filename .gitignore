@@ -61,3 +61,11 @@ data.db
 # Generated
 **/__generated__/
 /bin
+**/channel-artifacts/*.tx
+**/channel-artifacts/*.block
+**/crypto-config/*
+**/docker-compose-e2e.yaml
+**/ledgers
+**/ledgers-backup
+**/channel-artifacts/*.json
+**/org3-artifacts/crypto-config/*
