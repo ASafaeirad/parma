@@ -60,3 +60,4 @@ data.db
 
 # Generated
 **/__generated__/
+/bin
