@@ -4,7 +4,7 @@ import { getWallet } from './utils';
 
 async function registerUser() {
   try {
-    const ccpPath = path.resolve(__dirname, '..', 'first-network', 'org1.connection.json');
+    const ccpPath = path.resolve(__dirname, '..', 'network', 'org1.connection.json');
     const wallet = getWallet();
 
     const userExists = await wallet.exists('user1');
