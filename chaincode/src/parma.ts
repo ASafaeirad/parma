@@ -1,29 +1,13 @@
 import { Context, Contract } from 'fabric-contract-api';
 import { Host } from './models/host';
+import { initialHosts } from './initialState';
 
 export class Parma extends Contract {
   public async initLedger(ctx: Context) {
     console.info('============= START : Initialize Ledger =============');
-    const hosts: Host[] = [
-      {
-        id: '1',
-        ram: 1000,
-        pe: 2,
-        owner: 'Org1',
-      },
-      {
-        id: '2',
-        ram: 2000,
-        pe: 3,
-        owner: 'Org2',
-      },
-    ];
-
-    for (let i = 0; i < hosts.length; i++) {
-      hosts[i].docType = 'host';
-      await ctx.stub.putState(`HOST${i}`, Buffer.from(JSON.stringify(hosts[i])));
-      console.info('Added <--> ', hosts[i]);
-    }
+    const hosts = initialHosts;
+    const updates = hosts.map(host => ctx.stub.putState(`HOST${host.id}`, Buffer.from(JSON.stringify(host))));
+    await Promise.all(updates);
     console.info('============= END : Initialize Ledger =============');
   }
 
