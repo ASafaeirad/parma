@@ -1,4 +1,5 @@
 #!/bin/bash
+
 CHANNEL_NAME=${1:-"mychannel"}
 DELAY=${2:-3}
 TIMEOUT=${3-10}
@@ -93,8 +94,8 @@ setOrgAndPeer() {
 }
 
 createChannel() {
-  $PEER $1
-  $ORG $2
+  PEER=$1
+  ORG=$2
   setOrgAndPeer $PEER $ORG
 
   if [ -z "$CORE_PEER_TLS_ENABLED" ] || [ "$CORE_PEER_TLS_ENABLED" = "false" ]; then
