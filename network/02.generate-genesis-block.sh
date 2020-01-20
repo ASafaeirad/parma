@@ -1,5 +1,7 @@
 #!/bin/sh
 
+echo "Generate genesis block"
+
 # Generate Genesis Block
 configtxgen \
   -profile TwoOrgsOrdererGenesis \
