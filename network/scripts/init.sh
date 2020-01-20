@@ -35,7 +35,7 @@ joinChannelWithRetry() {
   ORG=$2
   TRY=${3:-0}
 
-  setOrgAndPeer $ORG $PEER
+  setOrgAndPeer $PEER $ORG
 
   set -x
   peer channel join -b "$CHANNEL_NAME.block" >&log.txt
