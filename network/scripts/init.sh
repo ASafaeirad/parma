@@ -6,6 +6,35 @@ TIMEOUT=${3-10}
 VERBOSE=${4:-"false"}
 NO_CHAINCODE=${5:-"false"}
 
+WARN='\033[0;33m'
+CYAN='\033[1;36m'
+RED='\033[0;32m'
+NC='\033[0m'
+
+title() {
+  echo -e "${CYAN}==============================${NC}"
+  echo -e "\\n${CYAN}${1}${NC}"
+  echo -e "${CYAN}==============================${NC}"
+}
+
+success() {
+  echo
+  echo -e "${CYAN}⬢ ${1}${NC}"
+  echo
+}
+
+warn() {
+  echo
+  echo -e "${WARN}⬢ ${1}${NC}"
+  echo
+}
+
+error() {
+  echo
+  echo -e "${RED}⬢ ${1}${NC}"
+  echo
+}
+
 LANGUAGE=node
 ORDERER=orderer.example.com:7050
 
@@ -20,9 +49,7 @@ PEER0_ORG3_CA="$CRYPTO_PATH/peerOrganizations/org3.example.com/peers/peer0.org3.
 
 exitIfFailed() {
   if [ $1 -ne 0 ]; then
-    echo "!!!!!!!!!!!!!!! $2 !!!!!!!!!!!!!!!!"
-    echo "========= ERROR !!! FAILED to execute End-2-End Scenario ==========="
-    echo
+    error $2
     exit 1
   fi
 }
@@ -44,7 +71,7 @@ joinChannelWithRetry() {
   cat log.txt
 
   if [ $res -ne 0 ] && [ $TRY -lt $MAX_RETRY ]; then
-    echo "peer${PEER}.org${ORG} failed to join the channel, Retry after $DELAY seconds"
+    warn "peer${PEER}.org${ORG} failed to join the channel, Retry after $DELAY seconds"
     sleep "$DELAY"
     TRY=$((TRY + 1))
     joinChannelWithRetry $PEER $ORG $TRY
@@ -85,7 +112,7 @@ setOrgAndPeer() {
       CORE_PEER_ADDRESS=peer1.org3.example.com:12051
     fi
   else
-    echo "================== ERROR !!! ORG Unknown =================="
+    warn "ERROR !!! ORG Unknown"
   fi
 
   if [ "$VERBOSE" == "true" ]; then
@@ -111,17 +138,15 @@ createChannel() {
   fi
   cat log.txt
   exitIfFailed $res "Channel creation failed"
-  echo "===================== Channel '$CHANNEL_NAME' created ===================== "
-  echo
+  title "Channel '$CHANNEL_NAME' created"
 }
 
 joinChannel() {
   for org in 1 2; do
     for peer in 0 1; do
       joinChannelWithRetry $peer $org
-      echo "===================== peer${peer}.org${org} joined channel '$CHANNEL_NAME' ===================== "
+      success "peer${peer}.org${org} joined channel '$CHANNEL_NAME'"
       sleep $DELAY
-      echo
     done
   done
 }
@@ -145,9 +170,8 @@ updateAnchorPeers() {
   cat log.txt
 
   exitIfFailed $res "Anchor peer update failed"
-  echo "===================== Anchor peers updated for org '$CORE_PEER_LOCALMSPID' on channel '$CHANNEL_NAME' ===================== "
+  success "Anchor peers updated for org '$CORE_PEER_LOCALMSPID' on channel '$CHANNEL_NAME'"
   sleep $DELAY
-  echo
 }
 
 installChaincode() {
@@ -163,8 +187,7 @@ installChaincode() {
   cat log.txt
 
   verifyResult $res "Chaincode installation on peer${PEER}.org${ORG} has failed"
-  echo "===================== Chaincode is installed on peer${PEER}.org${ORG} ===================== "
-  echo
+  success "Chaincode is installed on peer${PEER}.org${ORG}"
 }
 
 instantiateChaincode() {
@@ -189,32 +212,30 @@ instantiateChaincode() {
   fi
   cat log.txt
   verifyResult $res "Chaincode instantiation on peer${PEER}.org${ORG} on channel '$CHANNEL_NAME' failed"
-  echo "===================== Chaincode is instantiated on peer${PEER}.org${ORG} on channel '$CHANNEL_NAME' ===================== "
-  echo
+  success "Chaincode is instantiated on peer${PEER}.org${ORG} on channel '$CHANNEL_NAME'"
 }
 
 main() {
-  echo "Creating channel..."
+  title "Creating channel..."
   createChannel 0 1
 
-  echo "Having all peers join the channel..."
+  title "Having all peers join the channel..."
   joinChannel
 
-  echo "Updating anchor peers for org1..."
+  title "Updating anchor peers for org1..."
   updateAnchorPeers 0 1
-  echo "Updating anchor peers for org2..."
+
+  title "Updating anchor peers for org2..."
   updateAnchorPeers 0 2
 
   if [ "${NO_CHAINCODE}" != "true" ]; then
-    echo "Installing chaincode on peer0.org1..."
+    title "Installing chaincode on peer0.org1..."
     installChaincode 0 1
-    echo "Install chaincode on peer0.org2..."
+    title "Install chaincode on peer0.org2..."
     installChaincode 0 2
   fi
 
-  echo
-  echo "========= All GOOD, execution completed =========== "
-  echo
+  title "========= All GOOD, execution completed =========== "
 
   exit 0
 }
