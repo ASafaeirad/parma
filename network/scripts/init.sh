@@ -2,8 +2,8 @@
 CHANNEL_NAME=${1:-"mychannel"}
 DELAY=${2:-3}
 TIMEOUT=${3-10}
-VERBOSE=${4:"false"}
-NO_CHAINCODE=${5:"false"}
+VERBOSE=${4:-"false"}
+NO_CHAINCODE=${5:-"false"}
 
 LANGUAGE=node
 ORDERER=orderer.example.com:7050
