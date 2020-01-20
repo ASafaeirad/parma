@@ -12,9 +12,11 @@ RED='\033[0;32m'
 NC='\033[0m'
 
 title() {
+  echo
   echo -e "${CYAN}==============================${NC}"
-  echo -e "\\n${CYAN}${1}${NC}"
+  echo -e "${CYAN}${1}${NC}"
   echo -e "${CYAN}==============================${NC}"
+  echo
 }
 
 success() {
@@ -235,7 +237,7 @@ main() {
     installChaincode 0 2
   fi
 
-  title "========= All GOOD, execution completed =========== "
+  title "All GOOD, execution completed"
 
   exit 0
 }
