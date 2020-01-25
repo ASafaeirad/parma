@@ -1,5 +1,4 @@
-import { FileSystemWallet, Gateway } from 'fabric-network';
-import * as path from 'path';
+import { Gateway } from 'fabric-network';
 import { getCC, getWallet } from './utils';
 
 async function main() {

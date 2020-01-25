@@ -1,5 +1,5 @@
-import { Gateway, X509WalletMixin } from 'fabric-network';
 import * as path from 'path';
+import { Gateway, X509WalletMixin } from 'fabric-network';
 import { getWallet } from './utils';
 
 async function registerUser() {

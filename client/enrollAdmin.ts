@@ -1,5 +1,5 @@
-import { getCC, getCA, getWallet } from './utils';
 import { X509WalletMixin } from 'fabric-network';
+import { getCC, getCA, getWallet } from './utils';
 
 async function enrollAdmin() {
   try {
@@ -14,7 +14,7 @@ async function enrollAdmin() {
     }
 
     const enrollment = await ca.enroll({ enrollmentID: 'admin', enrollmentSecret: 'adminpw' });
-    const identity = await X509WalletMixin.createIdentity('Org1MSP', enrollment.certificate, enrollment.key.toBytes());;
+    const identity = await X509WalletMixin.createIdentity('Org1MSP', enrollment.certificate, enrollment.key.toBytes());
 
     await wallet.import('admin', identity);
 
