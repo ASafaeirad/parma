@@ -1,4 +1,16 @@
 #!/bin/bash
+WARN='\033[0;33m'
+CYAN='\033[1;36m'
+RED='\033[0;32m'
+NC='\033[0m'
+
+title() {
+  echo
+  echo -e "${CYAN}==============================${NC}"
+  echo -e "${CYAN}${1}${NC}"
+  echo -e "${CYAN}==============================${NC}"
+  echo
+}
 
 set -e
 
@@ -30,7 +42,7 @@ ORG2_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org2.example.com/user
 ORG2_TLS_ROOTCERT_FILE=${CONFIG_ROOT}/crypto/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
 ORDERER_TLS_ROOTCERT_FILE=${CONFIG_ROOT}/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
 
-echo "Installing smart contract on peer0.org1.example.com"
+title "Installing smart contract on peer0.org1.example.com"
 set -x
 docker exec \
   -e CORE_PEER_LOCALMSPID=Org1MSP \
@@ -45,7 +57,7 @@ docker exec \
   -l "$CC_RUNTIME"
 set +x
 
-echo "Installing smart contract on peer0.org2.example.com"
+title "Installing smart contract on peer0.org2.example.com"
 set -x
 docker exec \
   -e CORE_PEER_LOCALMSPID=Org2MSP \
@@ -60,7 +72,7 @@ docker exec \
   -l "$CC_RUNTIME"
 set +x
 
-echo "Instantiating smart contract on mychannel"
+title "Instantiating smart contract on mychannel"
 set -x
 docker exec \
   -e CORE_PEER_LOCALMSPID=Org1MSP \
@@ -80,11 +92,12 @@ docker exec \
   --tlsRootCertFiles ${ORG1_TLS_ROOTCERT_FILE}
 set +x
 
-echo "Waiting for instantiation request to be committed ..."
+title "Waiting for instantiation request to be committed ..."
 sleep 10
 
-echo "Submitting initLedger transaction to smart contract on mychannel"
-echo "The transaction is sent to the two peers with the chaincode installed (peer0.org1.example.com and peer0.org2.example.com) so that chaincode is built before receiving the following requests"
+title "Submitting initLedger transaction to smart contract on mychannel"
+title "The transaction is sent to the two peers with the chaincode installed (peer0.org1.example.com and peer0.org2.example.com) so that chaincode is built before receiving the following requests"
+set -x
 docker exec \
   -e CORE_PEER_LOCALMSPID=Org1MSP \
   -e CORE_PEER_MSPCONFIGPATH=${ORG1_MSPCONFIGPATH} \
