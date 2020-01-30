@@ -48,21 +48,22 @@ export class Parma extends Contract {
     const startKey = 'CAR0';
     const endKey = 'CAR999';
 
-    const iterator = await ctx.stub.getStateByRange(startKey, endKey);
+    const iterator = ctx.stub.getStateByRange(startKey, endKey);
 
     const allResults = [];
     for await (const res of iterator) {
-      if (res.value && res.value.value.toString()) {
-        console.log(res.value.value.toString('utf8'));
+      if (res.value && res.value.values.toString()) {
+        console.log(...res.value.values());
+        console.log(...res.value.keys());
 
-        const Key = res.value.key;
+        const Key = res.value.keys;
         const Record = getRecord(res);
         allResults.push({ Key, Record });
       }
     }
 
     console.log('end of data');
-    await iterator.close();
+    await (await iterator).close();
     console.info(allResults);
     return JSON.stringify(allResults);
   }
