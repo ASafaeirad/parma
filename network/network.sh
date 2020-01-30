@@ -5,6 +5,7 @@ CHANNEL_NAME=mychannel
 
 artifacts() {
   sudo rm -rf ./channel-artifacts ./crypto-config
+  mkdir channel-artifacts/
 
   echo "Generate crypto artifacts."
   cryptogen generate --config=./crypto-config.yaml
