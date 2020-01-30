@@ -4,6 +4,8 @@ PATH="../bin/:$PATH"
 CHANNEL_NAME=mychannel
 
 artifacts() {
+  rm -rf ./channel-artifacts ./crypto-config
+
   echo "Generate crypto artifacts."
   cryptogen generate --config=./crypto-config.yaml
 
@@ -92,6 +94,6 @@ case "$MODE" in
   teardonw
   ;;
 *)
-  echo "Wrong command"
+  echo "Wrong command!"
   ;;
 esac
