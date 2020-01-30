@@ -2,8 +2,6 @@
 
 PATH="../bin/:$PATH"
 CHANNEL_NAME=mychannel
-export CA1_PRIVATE_KEY
-export CA2_PRIVATE_KEY
 
 artifacts() {
   echo "Generate crypto artifacts."
@@ -50,8 +48,8 @@ init() {
 up() {
   echo "Start network"
 
-  CA1_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org1.example.com/ca && ls *_sk)
-  CA2_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org2.example.com/ca && ls *_sk)
+  export CA1_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org1.example.com/ca && ls *_sk)
+  export CA2_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org2.example.com/ca && ls *_sk)
 
   docker-compose \
     -f docker-compose-cli.yaml \
