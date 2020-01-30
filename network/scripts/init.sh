@@ -88,6 +88,7 @@ setOrgAndPeer() {
 
   if [ $ORG -eq 1 ]; then
     CORE_PEER_LOCALMSPID="Org1MSP"
+    CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_ORG1_CA
     CORE_PEER_MSPCONFIGPATH="$CRYPTO_PATH/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp"
     if [ $PEER -eq 0 ]; then
       CORE_PEER_ADDRESS=peer0.org1.example.com:7051
@@ -96,6 +97,7 @@ setOrgAndPeer() {
     fi
   elif [ $ORG -eq 2 ]; then
     CORE_PEER_LOCALMSPID="Org2MSP"
+    CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_ORG2_CA
     CORE_PEER_MSPCONFIGPATH="$CRYPTO_PATH/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp"
     if [ $PEER -eq 0 ]; then
       CORE_PEER_ADDRESS=peer0.org2.example.com:9051
@@ -104,6 +106,7 @@ setOrgAndPeer() {
     fi
   elif [ $ORG -eq 3 ]; then
     CORE_PEER_LOCALMSPID="Org3MSP"
+    CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_ORG3_CA
     CORE_PEER_MSPCONFIGPATH="$CRYPTO_PATH/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp"
     if [ $PEER -eq 0 ]; then
       CORE_PEER_ADDRESS=peer0.org3.example.com:11051
@@ -124,11 +127,17 @@ createChannel() {
   ORG=$2
   setOrgAndPeer $PEER $ORG
 
-  set -x
-  peer channel create -o $ORDERER -c "$CHANNEL_NAME" -f ./channel-artifacts/channel.tx >&log.txt
-  res=$?
-  set +x
-
+  if [ -z "$CORE_PEER_TLS_ENABLED" ] || [ "$CORE_PEER_TLS_ENABLED" = "false" ]; then
+    set -x
+    peer channel create -o $ORDERER -c "$CHANNEL_NAME" -f ./channel-artifacts/channel.tx >&log.txt
+    res=$?
+    set +x
+  else
+    set -x
+    peer channel create -o $ORDERER -c "$CHANNEL_NAME" -f ./channel-artifacts/channel.tx --tls "$CORE_PEER_TLS_ENABLED" --cafile "$ORDERER_CA" >&log.txt
+    res=$?
+    set +x
+  fi
   cat log.txt
   exitIfFailed $res "Channel creation failed"
   title "Channel '$CHANNEL_NAME' created"
@@ -149,11 +158,17 @@ updateAnchorPeers() {
   ORG=$2
   setOrgAndPeer $PEER $ORG
 
-  set -x
-  peer channel update -o $ORDERER -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx >&log.txt
-  res=$?
-  set +x
-
+  if [ -z "$CORE_PEER_TLS_ENABLED" ] || [ "$CORE_PEER_TLS_ENABLED" = "false" ]; then
+    set -x
+    peer channel update -o $ORDERER -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx >&log.txt
+    res=$?
+    set +x
+  else
+    set -x
+    peer channel update -o $ORDERER -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA >&log.txt
+    res=$?
+    set +x
+  fi
   cat log.txt
 
   exitIfFailed $res "Anchor peer update failed"
@@ -186,11 +201,17 @@ instantiateChaincode() {
   # while 'peer chaincode' command can get the orderer endpoint from the peer
   # (if join was successful), let's supply it directly as we know it using
   # the "-o" option
-  set -x
-  peer chaincode instantiate -o $ORDERER -C $CHANNEL_NAME -n $CC_NAME -l ${LANGUAGE} -v ${VERSION} -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
-  res=$?
-  set +x
-
+  if [ -z "$CORE_PEER_TLS_ENABLED" ] || [ "$CORE_PEER_TLS_ENABLED" = "false" ]; then
+    set -x
+    peer chaincode instantiate -o $ORDERER -C $CHANNEL_NAME -n $CC_NAME -l ${LANGUAGE} -v ${VERSION} -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
+    res=$?
+    set +x
+  else
+    set -x
+    peer chaincode instantiate -o $ORDERER --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA -C $CHANNEL_NAME -n $CC_NAME -l ${LANGUAGE} -v 1.0 -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
+    res=$?
+    set +x
+  fi
   cat log.txt
   verifyResult $res "Chaincode instantiation on peer${PEER}.org${ORG} on channel '$CHANNEL_NAME' failed"
   success "Chaincode is instantiated on peer${PEER}.org${ORG} on channel '$CHANNEL_NAME'"
