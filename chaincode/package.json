@@ -1,7 +1,7 @@
 {
-  "name": "@parma/chaincode",
+  "name": "parma",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "author": "frontendmonster@gmail.com <frontendmonster>",
   "license": "MIT",
   "engines": {
