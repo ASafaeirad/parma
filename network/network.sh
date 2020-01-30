@@ -4,7 +4,7 @@ PATH="../bin/:$PATH"
 CHANNEL_NAME=mychannel
 
 artifacts() {
-  rm -rf ./channel-artifacts ./crypto-config
+  sudo rm -rf ./channel-artifacts ./crypto-config
 
   echo "Generate crypto artifacts."
   cryptogen generate --config=./crypto-config.yaml
