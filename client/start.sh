@@ -18,7 +18,10 @@ echo Finished compiling TypeScript code into JavaScript
 # clean the keystore
 rm -rf ./hfc-key-store
 
-# TODO: launch network; create channel and join peer to channel
+# launch network; create channel and join peer to channel
+cd ../network
+echo y | ./network.sh teardown
+echo y | ./network.sh start
 
 CONFIG_ROOT=/opt/gopath/src/github.com/hyperledger/fabric/peer
 ORG1_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
@@ -26,9 +29,9 @@ ORG1_TLS_ROOTCERT_FILE=${CONFIG_ROOT}/crypto/peerOrganizations/org1.example.com/
 ORG2_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
 ORG2_TLS_ROOTCERT_FILE=${CONFIG_ROOT}/crypto/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
 ORDERER_TLS_ROOTCERT_FILE=${CONFIG_ROOT}/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
-set -x
 
 echo "Installing smart contract on peer0.org1.example.com"
+set -x
 docker exec \
   -e CORE_PEER_LOCALMSPID=Org1MSP \
   -e CORE_PEER_ADDRESS=peer0.org1.example.com:7051 \
@@ -40,8 +43,10 @@ docker exec \
   -v 1.0 \
   -p "$CC_SRC_PATH" \
   -l "$CC_RUNTIME"
+set +x
 
 echo "Installing smart contract on peer0.org2.example.com"
+set -x
 docker exec \
   -e CORE_PEER_LOCALMSPID=Org2MSP \
   -e CORE_PEER_ADDRESS=peer0.org2.example.com:9051 \
@@ -53,8 +58,10 @@ docker exec \
   -v 1.0 \
   -p "$CC_SRC_PATH" \
   -l "$CC_RUNTIME"
+set +x
 
 echo "Instantiating smart contract on mychannel"
+set -x
 docker exec \
   -e CORE_PEER_LOCALMSPID=Org1MSP \
   -e CORE_PEER_MSPCONFIGPATH=${ORG1_MSPCONFIGPATH} \
@@ -71,6 +78,7 @@ docker exec \
   --cafile ${ORDERER_TLS_ROOTCERT_FILE} \
   --peerAddresses peer0.org1.example.com:7051 \
   --tlsRootCertFiles ${ORG1_TLS_ROOTCERT_FILE}
+set +x
 
 echo "Waiting for instantiation request to be committed ..."
 sleep 10
