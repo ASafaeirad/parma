@@ -15,7 +15,8 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "fabric-contract-api": "1.4.4"
+    "fabric-contract-api": "1.4.4",
+    "fabric-shim": "2.0.0"
   },
   "devDependencies": {
     "@types/node": "13.1.0",
