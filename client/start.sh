@@ -8,9 +8,8 @@ starttime=$(date +%s)
 CC_RUNTIME=node
 CC_SRC_PATH=/opt/gopath/src/github.com/chaincode/
 
-pushd ../chaincode
 echo Compiling TypeScript code into JavaScript ...
-
+pushd ../chaincode
 npm install
 npm run build
 popd
