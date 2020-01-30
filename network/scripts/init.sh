@@ -4,7 +4,7 @@ CHANNEL_NAME=${1:-"mychannel"}
 DELAY=${2:-3}
 TIMEOUT=${3-10}
 VERBOSE=${4:-"false"}
-NO_CHAINCODE=${5:-"false"}
+NO_CHAINCODE=${5:-"true"}
 
 WARN='\033[0;33m'
 CYAN='\033[1;36m'

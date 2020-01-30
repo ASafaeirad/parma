@@ -34,6 +34,7 @@ rm -rf ./hfc-key-store
 cd ../network
 echo y | ./network.sh teardown
 echo y | ./network.sh start
+echo y | ./network.sh init
 
 CONFIG_ROOT=/opt/gopath/src/github.com/hyperledger/fabric/peer
 ORG1_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp

@@ -38,6 +38,15 @@ anchorpeer() {
     -asOrg Org2MSP
 }
 
+init() {
+  docker exec cli scripts/init.sh $CHANNEL_NAME
+
+  if [ $? -ne 0 ]; then
+    echo "ERROR !!!! Test failed"
+    exit 1
+  fi
+}
+
 up() {
   echo "Start network"
 
@@ -73,6 +82,9 @@ case "$MODE" in
   artifacts
   anchorpeer
   up
+  ;;
+"init")
+  init
   ;;
 "stop")
   down
