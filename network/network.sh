@@ -2,6 +2,7 @@
 
 PATH="../bin/:$PATH"
 CHANNEL_NAME=mychannel
+export FABRIC_CFG_PATH=$PWD
 
 artifacts() {
   sudo rm -rf ./channel-artifacts ./crypto-config

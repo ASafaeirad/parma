@@ -38,7 +38,7 @@ error() {
 }
 
 LANGUAGE=node
-ORDERER=orderer.example.com:7050
+ORDERER_ADDRESS=orderer.example.com:7050
 
 CC_NAME=mycc
 CC_SRC_PATH="/opt/gopath/src/github.com/chaincode/src/"
@@ -89,7 +89,7 @@ setOrgAndPeer() {
   if [ $ORG -eq 1 ]; then
     CORE_PEER_LOCALMSPID="Org1MSP"
     CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_ORG1_CA
-    CORE_PEER_MSPCONFIGPATH="$CRYPTO_PATH/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp"
+    CORE_PEER_MSPCONFIGPATH="${CRYPTO_PATH}/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp"
     if [ $PEER -eq 0 ]; then
       CORE_PEER_ADDRESS=peer0.org1.example.com:7051
     else
@@ -98,7 +98,7 @@ setOrgAndPeer() {
   elif [ $ORG -eq 2 ]; then
     CORE_PEER_LOCALMSPID="Org2MSP"
     CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_ORG2_CA
-    CORE_PEER_MSPCONFIGPATH="$CRYPTO_PATH/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp"
+    CORE_PEER_MSPCONFIGPATH="${CRYPTO_PATH}/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp"
     if [ $PEER -eq 0 ]; then
       CORE_PEER_ADDRESS=peer0.org2.example.com:9051
     else
@@ -107,7 +107,7 @@ setOrgAndPeer() {
   elif [ $ORG -eq 3 ]; then
     CORE_PEER_LOCALMSPID="Org3MSP"
     CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_ORG3_CA
-    CORE_PEER_MSPCONFIGPATH="$CRYPTO_PATH/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp"
+    CORE_PEER_MSPCONFIGPATH="${CRYPTO_PATH}/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp"
     if [ $PEER -eq 0 ]; then
       CORE_PEER_ADDRESS=peer0.org3.example.com:11051
     else
@@ -129,12 +129,12 @@ createChannel() {
 
   if [ -z "$CORE_PEER_TLS_ENABLED" ] || [ "$CORE_PEER_TLS_ENABLED" = "false" ]; then
     set -x
-    peer channel create -o $ORDERER -c "$CHANNEL_NAME" -f ./channel-artifacts/channel.tx >&log.txt
+    peer channel create -o $ORDERER_ADDRESS -c "$CHANNEL_NAME" -f ./channel-artifacts/channel.tx >&log.txt
     res=$?
     set +x
   else
     set -x
-    peer channel create -o $ORDERER -c "$CHANNEL_NAME" -f ./channel-artifacts/channel.tx --tls "$CORE_PEER_TLS_ENABLED" --cafile "$ORDERER_CA" >&log.txt
+    peer channel create -o $ORDERER_ADDRESS -c "$CHANNEL_NAME" -f ./channel-artifacts/channel.tx --tls "$CORE_PEER_TLS_ENABLED" --cafile "$ORDERER_CA" >&log.txt
     res=$?
     set +x
   fi
@@ -160,12 +160,12 @@ updateAnchorPeers() {
 
   if [ -z "$CORE_PEER_TLS_ENABLED" ] || [ "$CORE_PEER_TLS_ENABLED" = "false" ]; then
     set -x
-    peer channel update -o $ORDERER -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx >&log.txt
+    peer channel update -o $ORDERER_ADDRESS -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx >&log.txt
     res=$?
     set +x
   else
     set -x
-    peer channel update -o $ORDERER -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA >&log.txt
+    peer channel update -o $ORDERER_ADDRESS -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA >&log.txt
     res=$?
     set +x
   fi
@@ -203,12 +203,12 @@ instantiateChaincode() {
   # the "-o" option
   if [ -z "$CORE_PEER_TLS_ENABLED" ] || [ "$CORE_PEER_TLS_ENABLED" = "false" ]; then
     set -x
-    peer chaincode instantiate -o $ORDERER -C $CHANNEL_NAME -n $CC_NAME -l ${LANGUAGE} -v ${VERSION} -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
+    peer chaincode instantiate -o $ORDERER_ADDRESS -C $CHANNEL_NAME -n $CC_NAME -l ${LANGUAGE} -v ${VERSION} -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
     res=$?
     set +x
   else
     set -x
-    peer chaincode instantiate -o $ORDERER --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA -C $CHANNEL_NAME -n $CC_NAME -l ${LANGUAGE} -v 1.0 -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
+    peer chaincode instantiate -o $ORDERER_ADDRESS --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA -C $CHANNEL_NAME -n $CC_NAME -l ${LANGUAGE} -v 1.0 -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
     res=$?
     set +x
   fi

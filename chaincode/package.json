@@ -12,7 +12,8 @@
     "lint": "eslint chaincode",
     "build": "tsc",
     "build:watch": "tsc -w",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "start": "fabric-chaincode-node start"
   },
   "dependencies": {
     "fabric-contract-api": "1.4.4",
