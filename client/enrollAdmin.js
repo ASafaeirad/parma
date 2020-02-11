@@ -1,5 +1,5 @@
-import { X509WalletMixin } from 'fabric-network';
-import { getCC, getCA, getWallet } from './utils';
+const { X509WalletMixin } = require('fabric-network');
+const { getCC, getCA, getWallet } = require('./utils');
 
 async function enrollAdmin() {
   try {

@@ -1,10 +1,9 @@
-import * as path from 'path';
-import { Gateway, X509WalletMixin } from 'fabric-network';
-import { getWallet } from './utils';
+const { Gateway, X509WalletMixin } = require('fabric-network');
+const { getWallet, getCCPath } = require('./utils');
 
 async function registerUser() {
   try {
-    const ccpPath = path.resolve(__dirname, '..', 'network', 'org1.connection.json');
+    const ccpPath = getCCPath('org1.connection.json');
     const wallet = getWallet();
 
     const userExists = await wallet.exists('user1');

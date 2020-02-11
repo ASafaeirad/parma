@@ -1,5 +1,5 @@
-import { Gateway } from 'fabric-network';
-import { getCC, getWallet } from './utils';
+const { Gateway } = require('fabric-network');
+const { getCC, getWallet } = require('./utils');
 
 async function main() {
   try {
