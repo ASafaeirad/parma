@@ -5,11 +5,11 @@ import { FileSystemWallet } from 'fabric-network';
 
 export const existsOrCreateDir = (dir: string) => !fs.existsSync(path.join(dir)) && fs.mkdirSync(dir);
 
-export function getCCPath(peer: string, { context = '../network' } = {}) {
+export function getCCPath(peer: string, { context = '../../network' } = {}) {
   return path.resolve(__dirname, context, peer);
 }
 
-export function getCC(peer: string, { context = '../network' } = {}) {
+export function getCC(peer: string, { context = '../../network' } = {}) {
   const ccFile = fs.readFileSync(getCCPath(peer, { context }), 'utf8');
   return JSON.parse(ccFile);
 }
