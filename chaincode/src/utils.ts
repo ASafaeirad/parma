@@ -1,4 +1,4 @@
-function toString(value: Buffer): string {
+export function getRecord(value: Buffer): string {
   try {
     return JSON.parse(value.toString('utf8'));
   } catch (err) {

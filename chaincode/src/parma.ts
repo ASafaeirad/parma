@@ -2,6 +2,7 @@ import { Context, Contract } from 'fabric-contract-api';
 import { Iterators } from 'fabric-shim';
 import { Host } from './models/Host';
 import { hosts } from './initialState';
+import { getRecord } from './utils';
 
 export class Parma extends Contract {
   public async initLedger(ctx: Context) {
@@ -53,7 +54,7 @@ export class Parma extends Contract {
       if (value?.toString()) {
         console.log(value.toString('utf8'));
         const Key = key;
-        const Record = toString(value);
+        const Record = getRecord(value);
         allResults.push({ Key, Record });
       }
     } while (res.done);
