@@ -22,12 +22,12 @@ async function main() {
     const network = await gateway.getNetwork('mychannel');
 
     // Get the contract from the network.
-    const contract = network.getContract('fabcar');
+    const contract = network.getContract('parma');
 
     // Evaluate the specified transaction.
     // queryCar transaction - requires 1 argument, ex: ('queryCar', 'CAR4')
-    // queryAllCars transaction - requires no arguments, ex: ('queryAllCars')
-    const result = await contract.evaluateTransaction('queryAllCars');
+    // queryAllHosts transaction - requires no arguments, ex: ('queryAllHosts')
+    const result = await contract.evaluateTransaction('queryAllHosts');
     console.log(`Transaction has been evaluated, result is: ${result.toString()}`);
   } catch (error) {
     console.error(`Failed to evaluate transaction: ${error}`);
