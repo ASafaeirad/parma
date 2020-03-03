@@ -1,9 +1,5 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- */
+import { Parma } from './parma';
 
-import { FabCar } from './fabcar';
+export { Parma } from './parma';
 
-export { FabCar } from './fabcar';
-
-export const contracts: any[] = [FabCar];
+export const contracts: any[] = [Parma];
