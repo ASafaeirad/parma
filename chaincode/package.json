@@ -1,7 +1,7 @@
 {
-    "name": "fabcar",
+    "name": "parma",
     "version": "1.0.0",
-    "description": "FabCar contract implemented in TypeScript",
+    "description": "Parma contract implemented in TypeScript",
     "main": "dist/index.js",
     "typings": "dist/index.d.ts",
     "engines": {
