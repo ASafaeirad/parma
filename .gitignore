@@ -64,3 +64,5 @@ data.db
 # gitignore
 examples/
 wallet/
+
+package-lock.json
