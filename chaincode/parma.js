@@ -1,82 +1,151 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 const { Contract } = require('fabric-contract-api');
-const { hosts } = require('./initialState');
-const { getRecord } = require('./utils');
 
 class Parma extends Contract {
   async initLedger(ctx) {
     console.info('============= START : Initialize Ledger ===========');
-    await Promise.all(hosts.map(host => ctx.stub.putState(`HOST${host.id}`, Buffer.from(JSON.stringify(hosts)))));
+    const cars = [
+      {
+        color: 'blue',
+        make: 'Toyota',
+        model: 'Prius',
+        owner: 'Tomoko',
+      },
+      {
+        color: 'red',
+        make: 'Ford',
+        model: 'Mustang',
+        owner: 'Brad',
+      },
+      {
+        color: 'green',
+        make: 'Hyundai',
+        model: 'Tucson',
+        owner: 'Jin Soo',
+      },
+      {
+        color: 'yellow',
+        make: 'Volkswagen',
+        model: 'Passat',
+        owner: 'Max',
+      },
+      {
+        color: 'black',
+        make: 'Tesla',
+        model: 'S',
+        owner: 'Adriana',
+      },
+      {
+        color: 'purple',
+        make: 'Peugeot',
+        model: '205',
+        owner: 'Michel',
+      },
+      {
+        color: 'white',
+        make: 'Chery',
+        model: 'S22L',
+        owner: 'Aarav',
+      },
+      {
+        color: 'violet',
+        make: 'Fiat',
+        model: 'Punto',
+        owner: 'Pari',
+      },
+      {
+        color: 'indigo',
+        make: 'Tata',
+        model: 'Nano',
+        owner: 'Valeria',
+      },
+      {
+        color: 'brown',
+        make: 'Holden',
+        model: 'Barina',
+        owner: 'Shotaro',
+      },
+    ];
+
+    for (let i = 0; i < cars.length; i++) {
+      cars[i].docType = 'car';
+      await ctx.stub.putState(`CAR${i}`, Buffer.from(JSON.stringify(cars[i])));
+      console.info('Added <--> ', cars[i]);
+    }
     console.info('============= END : Initialize Ledger ===========');
   }
 
-  async queryHost(ctx, id) {
-    const hostAsBytes = await ctx.stub.getState(id);
-
-    if (hostAsBytes?.length) {
-      throw Error(`${id} does not exist`);
+  async queryCar(ctx, carNumber) {
+    const carAsBytes = await ctx.stub.getState(carNumber); // get the car from chaincode state
+    if (!carAsBytes || carAsBytes.length === 0) {
+      throw new Error(`${carNumber} does not exist`);
     }
-
-    console.log(hostAsBytes.toString());
-    return hostAsBytes.toString();
+    console.log(carAsBytes.toString());
+    return carAsBytes.toString();
   }
 
-  async createHost(ctx, id, ram, disk, cpu) {
-    console.info('============= START : Create Host ===========');
+  async createCar(ctx, carNumber, make, model, color, owner) {
+    console.info('============= START : Create Car ===========');
 
-    const host = {
-      docType: 'host',
-      id,
-      cpu,
-      disk,
-      ram,
+    const car = {
+      color,
+      docType: 'car',
+      make,
+      model,
+      owner,
     };
 
-    await ctx.stub.putState(`HOST${id}`, Buffer.from(JSON.stringify(host)));
-    console.info('============= END : Create Host ===========');
+    await ctx.stub.putState(carNumber, Buffer.from(JSON.stringify(car)));
+    console.info('============= END : Create Car ===========');
   }
 
-  async queryAllHosts(ctx) {
-    const startKey = 'HOST0';
-    const endKey = 'HOST999';
+  async queryAllCars(ctx) {
+    const startKey = 'CAR0';
+    const endKey = 'CAR999';
 
     const iterator = await ctx.stub.getStateByRange(startKey, endKey);
 
     const allResults = [];
-    let res;
+    while (true) {
+      const res = await iterator.next();
 
-    do {
-      // eslint-disable-next-line no-await-in-loop
-      res = await iterator.next();
+      if (res.value && res.value.value.toString()) {
+        console.log(res.value.value.toString('utf8'));
 
-      const { key, value } = res.value || {};
-      if (value?.toString()) {
-        console.log(value.toString('utf8'));
-        const Key = key;
-        const Record = getRecord(value);
+        const Key = res.value.key;
+        let Record;
+        try {
+          Record = JSON.parse(res.value.value.toString('utf8'));
+        } catch (err) {
+          console.log(err);
+          Record = res.value.value.toString('utf8');
+        }
         allResults.push({ Key, Record });
       }
-    } while (res.done);
-
-    console.log('End of data');
-    await iterator.close();
-    console.info(allResults);
-
-    return JSON.stringify(allResults);
+      if (res.done) {
+        console.log('end of data');
+        await iterator.close();
+        console.info(allResults);
+        return JSON.stringify(allResults);
+      }
+    }
   }
 
-  async changeHostOwner(ctx, id, newRam) {
-    console.info('============= START : changeHostOwner ===========');
+  async changeCarOwner(ctx, carNumber, newOwner) {
+    console.info('============= START : changeCarOwner ===========');
 
-    const hostAsBytes = await ctx.stub.getState(`HOST${id}`); // get the host from chaincode state
-    if (hostAsBytes?.length) {
-      throw new Error(`${id} does not exist`);
+    const carAsBytes = await ctx.stub.getState(carNumber); // get the car from chaincode state
+    if (!carAsBytes || carAsBytes.length === 0) {
+      throw new Error(`${carNumber} does not exist`);
     }
+    const car = JSON.parse(carAsBytes.toString());
+    car.owner = newOwner;
 
-    const host = JSON.parse(hostAsBytes.toString());
-    host.ram = newRam;
-
-    await ctx.stub.putState(id, Buffer.from(JSON.stringify(host)));
-    console.info('============= END : changeHostOwner ===========');
+    await ctx.stub.putState(carNumber, Buffer.from(JSON.stringify(car)));
+    console.info('============= END : changeCarOwner ===========');
   }
 }
 
