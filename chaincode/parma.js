@@ -7,7 +7,7 @@ const { Contract } = require('fabric-contract-api');
 class Parma extends Contract {
   async initLedger(ctx) {
     console.info('============= START : Initialize Ledger ===========');
-    const cars = [
+    const hosts = [
       {
         color: 'blue',
         make: 'Toyota',
@@ -70,41 +70,41 @@ class Parma extends Contract {
       },
     ];
 
-    for (let i = 0; i < cars.length; i++) {
-      cars[i].docType = 'car';
-      await ctx.stub.putState(`CAR${i}`, Buffer.from(JSON.stringify(cars[i])));
-      console.info('Added <--> ', cars[i]);
+    for (let i = 0; i < hosts.length; i++) {
+      hosts[i].docType = 'host';
+      await ctx.stub.putState(`HOST${i}`, Buffer.from(JSON.stringify(hosts[i])));
+      console.info('Added <--> ', hosts[i]);
     }
     console.info('============= END : Initialize Ledger ===========');
   }
 
-  async queryCar(ctx, carNumber) {
-    const carAsBytes = await ctx.stub.getState(carNumber); // get the car from chaincode state
-    if (!carAsBytes || carAsBytes.length === 0) {
-      throw new Error(`${carNumber} does not exist`);
+  async queryHost(ctx, hostNumber) {
+    const hostAsBytes = await ctx.stub.getState(hostNumber); // get the host from chaincode state
+    if (!hostAsBytes || hostAsBytes.length === 0) {
+      throw new Error(`${hostNumber} does not exist`);
     }
-    console.log(carAsBytes.toString());
-    return carAsBytes.toString();
+    console.log(hostAsBytes.toString());
+    return hostAsBytes.toString();
   }
 
-  async createCar(ctx, carNumber, make, model, color, owner) {
-    console.info('============= START : Create Car ===========');
+  async createHost(ctx, hostNumber, make, model, color, owner) {
+    console.info('============= START : Create Host ===========');
 
-    const car = {
+    const host = {
       color,
-      docType: 'car',
+      docType: 'host',
       make,
       model,
       owner,
     };
 
-    await ctx.stub.putState(carNumber, Buffer.from(JSON.stringify(car)));
-    console.info('============= END : Create Car ===========');
+    await ctx.stub.putState(hostNumber, Buffer.from(JSON.stringify(host)));
+    console.info('============= END : Create Host ===========');
   }
 
-  async queryAllCars(ctx) {
-    const startKey = 'CAR0';
-    const endKey = 'CAR999';
+  async queryAllHosts(ctx) {
+    const startKey = 'HOST0';
+    const endKey = 'HOST999';
 
     const iterator = await ctx.stub.getStateByRange(startKey, endKey);
 
@@ -134,18 +134,18 @@ class Parma extends Contract {
     }
   }
 
-  async changeCarOwner(ctx, carNumber, newOwner) {
-    console.info('============= START : changeCarOwner ===========');
+  async changeHostOwner(ctx, hostNumber, newOwner) {
+    console.info('============= START : changeHostOwner ===========');
 
-    const carAsBytes = await ctx.stub.getState(carNumber); // get the car from chaincode state
-    if (!carAsBytes || carAsBytes.length === 0) {
-      throw new Error(`${carNumber} does not exist`);
+    const hostAsBytes = await ctx.stub.getState(hostNumber); // get the host from chaincode state
+    if (!hostAsBytes || hostAsBytes.length === 0) {
+      throw new Error(`${hostNumber} does not exist`);
     }
-    const car = JSON.parse(carAsBytes.toString());
-    car.owner = newOwner;
+    const host = JSON.parse(hostAsBytes.toString());
+    host.owner = newOwner;
 
-    await ctx.stub.putState(carNumber, Buffer.from(JSON.stringify(car)));
-    console.info('============= END : changeCarOwner ===========');
+    await ctx.stub.putState(hostNumber, Buffer.from(JSON.stringify(host)));
+    console.info('============= END : changeHostOwner ===========');
   }
 }
 
