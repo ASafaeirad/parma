@@ -1,4 +1,4 @@
-export function getRecord(value: Buffer): string {
+function getRecord(value) {
   try {
     return JSON.parse(value.toString('utf8'));
   } catch (err) {
@@ -6,3 +6,5 @@ export function getRecord(value: Buffer): string {
     return value.toString('utf8');
   }
 }
+
+module.exports = { getRecord };

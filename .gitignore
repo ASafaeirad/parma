@@ -66,3 +66,5 @@ examples/
 wallet/
 
 package-lock.json
+
+.deadcode

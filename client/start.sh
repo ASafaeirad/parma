@@ -23,12 +23,12 @@ CC_SRC_PATH=/opt/gopath/src/github.com/chaincode/
 echo Compiling TypeScript code into JavaScript ...
 pushd ../chaincode
 npm install
-npm run build
+# npm run build
 popd
 echo Finished compiling TypeScript code into JavaScript
 
 # clean the keystore
-rm -rf ./hfc-key-store
+rm -rf ./wallet
 
 # launch network; create channel and join peer to channel
 cd ../network
@@ -107,14 +107,15 @@ docker exec \
   -o orderer.example.com:7050 \
   -C mychannel \
   -n parma \
-  -c '{"function":"initLedger","Args":[]}' \
   --waitForEvent \
   --tls \
   --cafile ${ORDERER_TLS_ROOTCERT_FILE} \
   --peerAddresses peer0.org1.example.com:7051 \
   --peerAddresses peer0.org2.example.com:9051 \
   --tlsRootCertFiles ${ORG1_TLS_ROOTCERT_FILE} \
-  --tlsRootCertFiles ${ORG2_TLS_ROOTCERT_FILE}
+  --tlsRootCertFiles ${ORG2_TLS_ROOTCERT_FILE} \
+  -c '{"function":"initLedger","Args":[]}'
+
 set +x
 
 cat <<EOF

@@ -1,17 +1,15 @@
-import { Context, Contract } from 'fabric-contract-api';
-import { Iterators } from 'fabric-shim';
-import { Host } from './models/Host';
-import { hosts } from './initialState';
-import { getRecord } from './utils';
+const { Contract } = require('fabric-contract-api');
+const { hosts } = require('./initialState');
+const { getRecord } = require('./utils');
 
-export class Parma extends Contract {
-  public async initLedger(ctx: Context) {
+class Parma extends Contract {
+  async initLedger(ctx) {
     console.info('============= START : Initialize Ledger ===========');
     await Promise.all(hosts.map(host => ctx.stub.putState(`HOST${host.id}`, Buffer.from(JSON.stringify(hosts)))));
     console.info('============= END : Initialize Ledger ===========');
   }
 
-  public async queryHost(ctx: Context, id: string): Promise<string> {
+  async queryHost(ctx, id) {
     const hostAsBytes = await ctx.stub.getState(id);
 
     if (hostAsBytes?.length) {
@@ -22,10 +20,10 @@ export class Parma extends Contract {
     return hostAsBytes.toString();
   }
 
-  public async createHost(ctx: Context, id: string, ram: number, disk: number, cpu: number) {
+  async createHost(ctx, id, ram, disk, cpu) {
     console.info('============= START : Create Host ===========');
 
-    const host: Host = {
+    const host = {
       docType: 'host',
       id,
       cpu,
@@ -37,14 +35,14 @@ export class Parma extends Contract {
     console.info('============= END : Create Host ===========');
   }
 
-  public async queryAllHosts(ctx: Context): Promise<string> {
+  async queryAllHosts(ctx) {
     const startKey = 'HOST0';
     const endKey = 'HOST999';
 
     const iterator = await ctx.stub.getStateByRange(startKey, endKey);
 
     const allResults = [];
-    let res: Iterators.NextResult;
+    let res;
 
     do {
       // eslint-disable-next-line no-await-in-loop
@@ -66,7 +64,7 @@ export class Parma extends Contract {
     return JSON.stringify(allResults);
   }
 
-  public async changeHostOwner(ctx: Context, id: string, newRam: number) {
+  async changeHostOwner(ctx, id, newRam) {
     console.info('============= START : changeHostOwner ===========');
 
     const hostAsBytes = await ctx.stub.getState(`HOST${id}`); // get the host from chaincode state
@@ -74,10 +72,12 @@ export class Parma extends Contract {
       throw new Error(`${id} does not exist`);
     }
 
-    const host: Host = JSON.parse(hostAsBytes.toString());
+    const host = JSON.parse(hostAsBytes.toString());
     host.ram = newRam;
 
     await ctx.stub.putState(id, Buffer.from(JSON.stringify(host)));
     console.info('============= END : changeHostOwner ===========');
   }
 }
+
+module.exports = Parma;
