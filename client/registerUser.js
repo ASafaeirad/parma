@@ -4,7 +4,7 @@ const config = require('./config');
 
 async function registerUser() {
   try {
-    const ccpPath = getCCPath('org1.connection.json');
+    const ccpPath = getCCPath(config.connection);
     const wallet = getWallet();
 
     if (await wallet.exists(config.user)) {
