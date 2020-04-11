@@ -72,7 +72,8 @@ down() {
 }
 
 teardonw() {
-  docker rm -f "$(docker ps -aq)"
+  docker rm $(sudo docker ps --filter=status=exited --filter=status=created -q)
+  docker rmi $(docker images -q --filter reference="dev-*")
   docker volume prune
   docker network prune
 }

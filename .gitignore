@@ -68,3 +68,4 @@ wallet/
 package-lock.json
 
 .deadcode
+client/dataset

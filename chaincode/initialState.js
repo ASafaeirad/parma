@@ -1,8 +1,17 @@
+const resource = docType => arr =>
+  arr.map((host, id) => ({
+    docType,
+    ...host,
+    id,
+    freeCpu: host.cpu,
+    freeRam: host.ram,
+  }));
+
 const hosts = [
-  { cpu: 1000, disk: 2000, ram: 4000 },
-  { cpu: 1000, disk: 2000, ram: 4000 },
-].map((host, index) => ({ ...host, id: index.toString(), docType: 'host' }));
+  { cpu: 1000, ram: 5000, owner: 'org1' },
+  { cpu: 1000, ram: 7000, owner: 'org2' },
+];
 
 module.exports = {
-  hosts,
+  hosts: resource('host')(hosts),
 };

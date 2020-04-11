@@ -1,34 +1,35 @@
+#!/home/skill/.nvm/versions/node/v8.9.4/bin/node
 const { Gateway } = require('fabric-network');
+const config = require('./config');
 const { getCC, getWallet } = require('./utils');
+// const data = require('./data.json');
 
 async function main() {
   try {
     const ccpPath = getCC('org1.connection.json');
     const wallet = getWallet();
 
-    // Check to see if we've already enrolled the user.
-    const userExists = await wallet.exists('user1');
+    const userExists = await wallet.exists(config.user);
     if (!userExists) {
-      console.log('An identity for the user "user1" does not exist in the wallet');
+      console.log(
+        'An identity for the user "user1" does not exist in the wallet',
+      );
       console.log('Run the registerUser.ts application before retrying');
       return;
     }
 
-    // Create a new gateway for connecting to our peer node.
     const gateway = new Gateway();
-    await gateway.connect(ccpPath, { wallet, identity: 'user1', discovery: { enabled: true, asLocalhost: true } });
+    await gateway.connect(ccpPath, {
+      wallet,
+      identity: config.user,
+      discovery: { enabled: true, asLocalhost: true },
+    });
 
-    // Get the network (channel) our contract is deployed to.
-    const network = await gateway.getNetwork('mychannel');
+    const network = await gateway.getNetwork(config.channel);
+    const contract = network.getContract(config.contract);
 
-    // Get the contract from the network.
-    const contract = network.getContract('parma');
-
-    // Evaluate the specified transaction.
-    // queryCar transaction - requires 1 argument, ex: ('queryCar', 'CAR4')
-    // queryAllHosts transaction - requires no arguments, ex: ('queryAllHosts')
     const result = await contract.evaluateTransaction('queryAllHosts');
-    console.log(`Transaction has been evaluated, result is: ${result.toString()}`);
+    console.log(result.toString());
   } catch (error) {
     console.error(`Failed to evaluate transaction: ${error}`);
     process.exit(1);
