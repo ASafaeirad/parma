@@ -9,8 +9,8 @@
   },
   "scripts": {},
   "dependencies": {
-    "fabric-ca-client": "1.4.4",
-    "fabric-network": "1.4.4",
+    "fabric-ca-client": "^2.1.0",
+    "fabric-network": "^2.1.0",
     "ramda": "^0.27.0"
   }
 }

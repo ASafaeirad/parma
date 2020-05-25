@@ -1,17 +1,27 @@
-const parse = item => JSON.parse(item.toString());
+const parse = item => JSON.parse(item.toString('utf8'));
 
 const toRecord = item => Buffer.from(JSON.stringify(item));
 
-function getRecord(value) {
+function tryParse(value) {
   try {
-    return JSON.parse(value.toString('utf8'));
+    return parse(Buffer.from(value));
   } catch (err) {
     console.log(err);
-    return value.toString('utf8');
+    return value;
   }
 }
 
-async function getAllResults(iterator, isHistory) {
+async function getAllResults(iterator) {
+  const allResults = [];
+
+  for await (const { key, value } of iterator) {
+    allResults.push({ Key: key, Record: tryParse(value) });
+  }
+
+  return allResults;
+}
+
+async function _getAllResults(iterator, isHistory) {
   const results = [];
 
   while (true) {
@@ -26,11 +36,11 @@ async function getAllResults(iterator, isHistory) {
               TxId: value.tx_id,
               Timestamp: value.timestamp,
               IsDelete: value.is_delete.toString(),
-              value: getRecord(value.value),
+              value: tryParse(value.value),
             }
           : {
               Key: value.key,
-              value: getRecord(value.value),
+              value: tryParse(value.value),
             },
       );
     }
@@ -42,4 +52,9 @@ async function getAllResults(iterator, isHistory) {
   }
 }
 
-module.exports = { getRecord, toRecord, getAllResults, parse };
+module.exports = {
+  tryParse,
+  toRecord,
+  getAllResults,
+  parse,
+};

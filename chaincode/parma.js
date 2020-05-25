@@ -1,5 +1,5 @@
 const { Contract } = require('fabric-contract-api');
-const { parse, toRecord, getAllResults } = require('./utils');
+const { tryParse, toRecord, getAllResults, selectHost } = require('./utils');
 const initial = require('./initialState');
 
 class Parma extends Contract {
@@ -14,35 +14,22 @@ class Parma extends Contract {
     console.info('============= END : Initialize Ledger ===========');
   }
 
-  async queryHostsByOwner(stub, owner) {
-    if (!owner) {
-      throw new Error('Invalid usage: Owner arg is missing');
-    }
-
-    const queryString = {
-      selector: { docType: 'host', owner: owner.toLowerCase() },
+  async submitJob(ctx, owner, cpuReq, memReq) {
+    // TODO: get privacy
+    const job = {
+      owner,
+      cpuReq,
+      memReq,
     };
 
-    const queryResults = await this.getQueryResultForQueryString(
-      stub,
-      JSON.stringify(queryString),
-    );
+    const hosts = await selectHost(ctx, job);
+    console.log(hosts);
 
-    return queryResults;
-  }
+    hosts[0].mem = hosts[0].mem - memReq;
+    hosts[0].cpu = hosts[0].cpu - cpuReq;
+    await ctx.stub.putState(hosts[0].id, toRecord(hosts[0]));
 
-  async getQueryResultForQueryString(stub, queryString) {
-    const resultsIterator = await stub.getQueryResult(queryString);
-    const results = await this.getAllResults(resultsIterator, false);
-
-    return toRecord(results);
-  }
-
-  async submitJob(ctx, host, pTag) {
-    // get privacy
-
-    // privacy Org1
-    const job = {};
+    return hosts[0].toString();
   }
 
   async queryHost(ctx, hostId) {
@@ -69,20 +56,19 @@ class Parma extends Contract {
     console.info('============= END : Create Host ===========');
   }
 
-  async queryAllHosts(ctx) {
-    const startKey = 'HOST0';
-    const endKey = 'HOST999';
-    const iterator = await ctx.stub.getStateByRange(startKey, endKey);
-    return getAllResults(iterator);
+  queryHosts(ctx) {
+    const hosts = ctx.stub.getStateByRange('HOST0', 'HOST999');
+    return getAllResults(hosts);
   }
 
   async changeHostOwner(ctx, hostId, newOwner) {
     console.info('============= START : changeHostOwner ===========');
-    const hostAsBytes = await ctx.stub.getState(hostId);
-    if (!hostAsBytes || hostAsBytes.length === 0) {
+    const hostBuffer = await ctx.stub.getState(hostId);
+    if (!hostBuffer || hostBuffer.length === 0) {
       throw new Error(`${hostId} does not exist`);
     }
-    const host = parse(hostAsBytes);
+
+    const host = tryParse(hostBuffer);
     host.owner = newOwner;
 
     await ctx.stub.putState(hostId, toRecord(host));

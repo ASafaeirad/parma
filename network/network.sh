@@ -1,102 +1,440 @@
 #!/bin/bash
+export PATH=${PWD}/../bin:${PWD}:$PATH
+export FABRIC_CFG_PATH=${PWD}/configtx
+export VERBOSE=false
 
-PATH="../bin/:$PATH"
-CHANNEL_NAME=mychannel
-export FABRIC_CFG_PATH=$PWD
-
-artifacts() {
-  sudo rm -rf ./channel-artifacts ./crypto-config
-  mkdir channel-artifacts/
-
-  echo "Generate crypto artifacts."
-  cryptogen generate --config=./crypto-config.yaml
-
-  echo "Generate genesis block"
-  configtxgen \
-    -profile TwoOrgsOrdererGenesis \
-    -channelID byfn-sys-channel \
-    -outputBlock ./channel-artifacts/genesis.block
-
-  echo "Generate channel transaction artifacts."
-  configtxgen \
-    -profile TwoOrgsChannel \
-    -outputCreateChannelTx ./channel-artifacts/channel.tx \
-    -channelID $CHANNEL_NAME
+# Print the usage message
+function printHelp() {
+  echo "Usage: "
+  echo "  network.sh <Mode> [Flags]"
+  echo "    <Mode>"
+  echo "      - 'up' - bring up fabric orderer and peer nodes. No channel is created"
+  echo "      - 'up createChannel' - bring up fabric network with one channel"
+  echo "      - 'createChannel' - create and join a channel after the network is created"
+  echo "      - 'deployCC' - deploy the ${CC_NAME} chaincode on the channel"
+  echo "      - 'down' - clear the network with docker-compose down"
+  echo "      - 'restart' - restart the network"
+  echo
+  echo "    Flags:"
+  echo "    -ca <use CAs> -  create Certificate Authorities to generate the crypto material"
+  echo "    -c <channel name> - channel name to use (defaults to \"mychannel\")"
+  echo "    -r <max retry> - CLI times out after certain number of attempts (defaults to 5)"
+  echo "    -d <delay> - delay duration in seconds (defaults to 3)"
+  echo "    -l <language> - the programming language of the chaincode to deploy: go (default), java, javascript, typescript"
+  echo "    -v <version>  - chaincode version. Must be a round number, 1, 2, 3, etc"
+  echo "    -i <imagetag> - the tag to be used to launch the network (defaults to \"latest\")"
+  echo "    -verbose - verbose mode"
+  echo "  network.sh -h (print this message)"
+  echo
+  echo " Possible Mode and flags"
+  echo "  network.sh up -ca -c -r -d -s -i -verbose"
+  echo "  network.sh up createChannel -ca -c -r -d -s -i -verbose"
+  echo "  network.sh createChannel -c -r -d -verbose"
+  echo "  network.sh deployCC -l -v -r -d -verbose"
+  echo
+  echo " Taking all defaults:"
+  echo "	network.sh up"
+  echo
+  echo " Examples:"
+  echo "  network.sh up createChannel -ca -c mychannel -s couchdb -i 2.0.0"
+  echo "  network.sh createChannel -c channelName"
+  echo "  network.sh deployCC -l javascript"
 }
 
-anchorpeer() {
-  echo "Define anchorpeer for Org1."
-  configtxgen \
-    -profile TwoOrgsChannel \
-    -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx \
-    -channelID $CHANNEL_NAME \
-    -asOrg Org1MSP
-
-  echo "Define anchorpeer for Org2."
-  configtxgen \
-    -profile TwoOrgsChannel \
-    -outputAnchorPeersUpdate ./channel-artifacts/Org2MSPanchors.tx \
-    -channelID $CHANNEL_NAME \
-    -asOrg Org2MSP
+# Obtain CONTAINER_IDS and remove them
+# TODO Might want to make this optional - could clear other containers
+# This function is called when you bring a network down
+function clearContainers() {
+  CONTAINER_IDS=$(docker ps -a | awk '($2 ~ /dev-peer.*/) {print $1}')
+  if [ -z "$CONTAINER_IDS" ] || [ "$CONTAINER_IDS" == " " ]; then
+    echo "---- No containers available for deletion ----"
+  else
+    docker rm -f $CONTAINER_IDS
+  fi
 }
 
-init() {
-  docker exec cli scripts/init.sh $CHANNEL_NAME
+# Delete any images that were generated as a part of this setup
+# specifically the following images are often left behind:
+# This function is called when you bring the network down
+function removeUnwantedImages() {
+  DOCKER_IMAGE_IDS=$(docker images | awk '($1 ~ /dev-peer.*/) {print $3}')
+  if [ -z "$DOCKER_IMAGE_IDS" ] || [ "$DOCKER_IMAGE_IDS" == " " ]; then
+    echo "---- No images available for deletion ----"
+  else
+    docker rmi -f $DOCKER_IMAGE_IDS
+  fi
+}
 
-  if [ $? -ne 0 ]; then
-    echo "ERROR !!!! Test failed"
+# Before you can bring up a network, each organization needs to generate the crypto
+# material that will define that organization on the network. Because Hyperledger
+# Fabric is a permissioned blockchain, each node and user on the network needs to
+# use certificates and keys to sign and verify its actions. In addition, each user
+# needs to belong to an organization that is recognized as a member of the network.
+# You can use the Cryptogen tool or Fabric CAs to generate the organization crypto
+# material.
+
+# By default, the sample network uses cryptogen. Cryptogen is a tool that is
+# meant for development and testing that can quicky create the certificates and keys
+# that can be consumed by a Fabric network. The cryptogen tool consumes a series
+# of configuration files for each organization in the "organizations/cryptogen"
+# directory. Cryptogen uses the files to generate the crypto  material for each
+# org in the "organizations" directory.
+
+# You can also Fabric CAs to generate the crypto material. CAs sign the certificates
+# and keys that they generate to create a valid root of trust for each organization.
+# The script uses Docker Compose to bring up three CAs, one for each peer organization
+# and the ordering organization. The configuration file for creating the Fabric CA
+# servers are in the "organizations/fabric-ca" directory. Within the same diectory,
+# the "registerEnroll.sh" script uses the Fabric CA client to create the identites,
+# certificates, and MSP folders that are needed to create the test network in the
+# "organizations/ordererOrganizations" directory.
+
+# Create Organziation crypto material using cryptogen or CAs
+function createOrgs() {
+  if [ -d "organizations/peerOrganizations" ]; then
+    rm -Rf organizations/peerOrganizations && rm -Rf organizations/ordererOrganizations
+  fi
+
+  # Create crypto material using cryptogen
+  if [ "$CRYPTO" == "cryptogen" ]; then
+    echo
+    echo "##########################################################"
+    echo "##### Generate certificates using cryptogen tool #########"
+    echo "##########################################################"
+
+    echo
+    echo "##########################################################"
+    echo "############ Create Org1 Identities ######################"
+    echo "##########################################################"
+
+    set -x
+    cryptogen generate --config=./organizations/cryptogen/crypto-config-org1.yaml --output="organizations"
+    res=$?
+    set +x
+    if [ $res -ne 0 ]; then
+      echo "Failed to generate certificates..."
+      exit 1
+    fi
+
+    echo "##########################################################"
+    echo "############ Create Org2 Identities ######################"
+    echo "##########################################################"
+
+    set -x
+    cryptogen generate --config=./organizations/cryptogen/crypto-config-org2.yaml --output="organizations"
+    res=$?
+    set +x
+    if [ $res -ne 0 ]; then
+      echo "Failed to generate certificates..."
+      exit 1
+    fi
+
+    echo "##########################################################"
+    echo "############ Create Orderer Org Identities ###############"
+    echo "##########################################################"
+
+    set -x
+    cryptogen generate --config=./organizations/cryptogen/crypto-config-orderer.yaml --output="organizations"
+    res=$?
+    set +x
+    if [ $res -ne 0 ]; then
+      echo "Failed to generate certificates..."
+      exit 1
+    fi
+
+  fi
+
+  # Create crypto material using Fabric CAs
+  if [ "$CRYPTO" == "Certificate Authorities" ]; then
+    echo
+    echo "##########################################################"
+    echo "##### Generate certificates using Fabric CA's ############"
+    echo "##########################################################"
+
+    IMAGE_TAG=$IMAGETAG docker-compose -f $COMPOSE_FILE_CA up -d 2>&1
+
+    . organizations/fabric-ca/registerEnroll.sh
+
+    sleep 10
+
+    echo "##########################################################"
+    echo "############ Create Org1 Identities ######################"
+    echo "##########################################################"
+
+    createOrg1
+
+    echo "##########################################################"
+    echo "############ Create Org2 Identities ######################"
+    echo "##########################################################"
+
+    createOrg2
+
+    echo "##########################################################"
+    echo "############ Create Orderer Org Identities ###############"
+    echo "##########################################################"
+
+    createOrderer
+
+  fi
+
+  echo
+  echo "Generate CCP files for Org1 and Org2"
+  ./organizations/ccp-generate.sh
+}
+
+# Once you create the organization crypto material, you need to create the
+# genesis block of the orderer system channel. This block is required to bring
+# up any orderer nodes and create any application channels.
+
+# The configtxgen tool is used to create the genesis block. Configtxgen consumes a
+# "configtx.yaml" file that contains the definitions for the sample network. The
+# genesis block is defiend using the "TwoOrgsOrdererGenesis" profile at the bottom
+# of the file. This profile defines a sample consortium, "SampleConsortium",
+# consisting of our two Peer Orgs. This consortium defines which organizations are
+# recognized as members of the network. The peer and ordering organizations are defined
+# in the "Profiles" section at the top of the file. As part of each organization
+# profile, the file points to a the location of the MSP directory for each member.
+# This MSP is used to create the channel MSP that defines the root of trust for
+# each organization. In essense, the channel MSP allows the nodes and users to be
+# recognized as network members. The file also specifies the anchor peers for each
+# peer org. In future steps, this same file is used to create the channel creation
+# transaction and the anchor peer updates.
+#
+#
+# If you receive the following warning, it can be safely ignored:
+#
+# [bccsp] GetDefault -> WARN 001 Before using BCCSP, please call InitFactories(). Falling back to bootBCCSP.
+#
+# You can ignore the logs regarding intermediate certs, we are not using them in
+# this crypto implementation.
+
+# Generate orderer system channel genesis block.
+function createConsortium() {
+  echo "#########  Generating Orderer Genesis block ##############"
+
+  # Note: For some unknown reason (at least for now) the block file can't be
+  # named orderer.genesis.block or the orderer will fail to launch!
+  set -x
+  configtxgen -profile TwoOrgsOrdererGenesis -channelID system-channel -outputBlock ./system-genesis-block/genesis.block
+  res=$?
+  set +x
+  if [ $res -ne 0 ]; then
+    echo "Failed to generate orderer genesis block..."
     exit 1
   fi
 }
 
-up() {
-  echo "Start network"
+# After we create the org crypto material and the system channel genesis block,
+# we can now bring up the peers and orderering service. By default, the base
+# file for creating the network is "docker-compose-test-net.yaml" in the ``docker``
+# folder. This file defines the environment variables and file mounts that
+# point the crypto material and genesis block that were created in earlier.
 
-  export CA1_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org1.example.com/ca && ls *_sk)
-  export CA2_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org2.example.com/ca && ls *_sk)
+# Bring up the peer and orderer nodes using docker compose.
+function networkUp() {
+  # generate artifacts if they don't exist
+  if [ ! -d "organizations/peerOrganizations" ]; then
+    createOrgs
+    createConsortium
+  fi
 
-  docker-compose \
-    -f docker-compose-cli.yaml \
-    -f docker-compose-ca.yaml \
-    -f docker-compose-couch.yaml \
-    up -d
+  COMPOSE_FILES="-f ${COMPOSE_FILE_BASE}"
+
+  if [ "${DATABASE}" == "couchdb" ]; then
+    COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_COUCH}"
+  fi
+
+  if [ "$CRYPTO" == "Certificate Authorities" ]; then
+    COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_CA}"
+  fi
+
+  IMAGE_TAG=$IMAGETAG docker-compose ${COMPOSE_FILES} up -d 2>&1
+
+  docker ps -a
+  if [ $? -ne 0 ]; then
+    echo "ERROR !!!! Unable to start network"
+    exit 1
+  fi
 }
 
-down() {
-  echo "Stop Orgs, CLI, CI and Couch db."
-  docker-compose \
-    -f docker-compose-cli.yaml \
-    -f docker-compose-ca.yaml \
-    -f docker-compose-couch.yaml \
-    down
+## call the script to join create the channel and join the peers of org1 and org2
+function createChannel() {
+  ## Bring up the network if it is not arleady up.
+  if [ ! -d "organizations/peerOrganizations" ]; then
+    echo "Bringing up network"
+    networkUp
+  fi
+
+  # now run the script that creates a channel. This script uses configtxgen once
+  # more to create the channel creation transaction and the anchor peer updates.
+  # configtx.yaml is mounted in the cli container, which allows us to use it to
+  # create the channel artifacts
+ scripts/createChannel.sh $CHANNEL_NAME $CLI_DELAY $MAX_RETRY $VERBOSE
+  if [ $? -ne 0 ]; then
+    echo "Error !!! Create channel failed"
+    exit 1
+  fi
 }
 
-teardonw() {
-  docker rm $(sudo docker ps --filter=status=exited --filter=status=created -q)
-  docker rmi $(docker images -q --filter reference="dev-*")
-  docker volume prune
-  docker network prune
+function deployCC() {
+  scripts/deployCC.sh $CC_NAME $CHANNEL_NAME $VERSION $CLI_DELAY $MAX_RETRY $VERBOSE
+
+  if [ $? -ne 0 ]; then
+    echo "ERROR !!! Deploying chaincode failed"
+    exit 1
+  fi
+
+  exit 0
 }
 
-MODE=$1
 
-case "$MODE" in
-"start")
-  artifacts
-  anchorpeer
-  up
-  ;;
-"init")
-  init
-  ;;
-"stop")
-  down
-  ;;
-"teardown")
-  down
-  teardonw
-  ;;
-*)
-  echo "Wrong command!"
-  ;;
-esac
+# Tear down running network
+function networkDown() {
+  # stop org1 and org2, in case we were running sample to add org3
+  docker-compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_COUCH -f $COMPOSE_FILE_CA down --volumes --remove-orphans
+
+  # Don't remove the generated artifacts -- note, the ledgers are always removed
+  if [ "$MODE" != "restart" ]; then
+    # Bring down the network, deleting the volumes
+    # Cleanup the chaincode containers
+    clearContainers
+    # Cleanup images
+    removeUnwantedImages
+    # remove orderer block and other channel configuration transactions and certs
+    sudo rm -rf system-genesis-block/*.block organizations/peerOrganizations organizations/ordererOrganizations
+
+    # remove fabric ca artifacts
+    sudo rm -rf organizations/fabric-ca/org1/msp organizations/fabric-ca/org1/tls-cert.pem organizations/fabric-ca/org1/ca-cert.pem organizations/fabric-ca/org1/IssuerPublicKey organizations/fabric-ca/org1/IssuerRevocationPublicKey organizations/fabric-ca/org1/fabric-ca-server.db
+    sudo rm -rf organizations/fabric-ca/org2/msp organizations/fabric-ca/org2/tls-cert.pem organizations/fabric-ca/org2/ca-cert.pem organizations/fabric-ca/org2/IssuerPublicKey organizations/fabric-ca/org2/IssuerRevocationPublicKey organizations/fabric-ca/org2/fabric-ca-server.db
+    sudo rm -rf organizations/fabric-ca/ordererOrg/msp organizations/fabric-ca/ordererOrg/tls-cert.pem organizations/fabric-ca/ordererOrg/ca-cert.pem organizations/fabric-ca/ordererOrg/IssuerPublicKey organizations/fabric-ca/ordererOrg/IssuerRevocationPublicKey organizations/fabric-ca/ordererOrg/fabric-ca-server.db
+    sudo rm -rf addOrg3/fabric-ca/org3/msp addOrg3/fabric-ca/org3/tls-cert.pem addOrg3/fabric-ca/org3/ca-cert.pem addOrg3/fabric-ca/org3/IssuerPublicKey addOrg3/fabric-ca/org3/IssuerRevocationPublicKey addOrg3/fabric-ca/org3/fabric-ca-server.db
+
+    # remove channel and script artifacts
+    sudo rm -rf channel-artifacts log.txt ${CC_NAME}.tar.gz ${CC_NAME}
+  fi
+}
+
+# Using crpto vs CA. default is cryptogen
+CRYPTO="cryptogen"
+# timeout duration - the duration the CLI should wait for a response from
+# another container before giving up
+MAX_RETRY=5
+CC_NAME="parma"
+# default for delay between commands
+CLI_DELAY=3
+CHANNEL_NAME="mychannel"
+# use this as the default docker-compose yaml definition
+COMPOSE_FILE_BASE=docker/docker-compose-test-net.yaml
+# docker-compose.yaml file if you are using couchdb
+COMPOSE_FILE_COUCH=docker/docker-compose-couch.yaml
+# certificate authorities compose file
+COMPOSE_FILE_CA=docker/docker-compose-ca.yaml
+# Chaincode version
+VERSION=1
+# default image tag
+IMAGETAG="latest"
+# default database
+DATABASE="couchdb"
+
+# Parse commandline args
+
+## Parse mode
+if [[ $# -lt 1 ]] ; then
+  printHelp
+  exit 0
+else
+  MODE=$1
+  shift
+fi
+
+# parse a createChannel subcommand if used
+if [[ $# -ge 1 ]] ; then
+  key="$1"
+  if [[ "$key" == "createChannel" ]]; then
+      export MODE="createChannel"
+      shift
+  fi
+fi
+
+# parse flags
+while [[ $# -ge 1 ]] ; do
+  key="$1"
+  case $key in
+  -h )
+    printHelp
+    exit 0
+    ;;
+  -c )
+    CHANNEL_NAME="$2"
+    shift
+    ;;
+  -ca )
+    CRYPTO="Certificate Authorities"
+    ;;
+  -r )
+    MAX_RETRY="$2"
+    shift
+    ;;
+  -d )
+    CLI_DELAY="$2"
+    shift
+    ;;
+  -s )
+    DATABASE="$2"
+    shift
+    ;;
+  -v )
+    VERSION="$2"
+    shift
+    ;;
+  -i )
+    IMAGETAG="$2"
+    shift
+    ;;
+  -verbose )
+    VERBOSE=true
+    shift
+    ;;
+  * )
+    echo
+    echo "Unknown flag: $key"
+    echo
+    printHelp
+    exit 1
+    ;;
+  esac
+  shift
+done
+
+# Are we generating crypto material with this command?
+if [ ! -d "organizations/peerOrganizations" ]; then
+  CRYPTO_MODE="with crypto from '${CRYPTO}'"
+else
+  CRYPTO_MODE=""
+fi
+
+if [ "${MODE}" == "up" ]; then
+  echo "Starting nodes with CLI timeout of '${MAX_RETRY}' tries and CLI delay of '${CLI_DELAY}' seconds and using database '${DATABASE}' ${CRYPTO_MODE}"
+  echo
+  networkUp
+elif [ "${MODE}" == "createChannel" ]; then
+  echo "Creating channel '${CHANNEL_NAME}'."
+  echo
+  echo "If network is not up, starting nodes with CLI timeout of '${MAX_RETRY}' tries and CLI delay of '${CLI_DELAY}' seconds and using database '${DATABASE} ${CRYPTO_MODE}"
+  echo
+  createChannel
+elif [ "${MODE}" == "deployCC" ]; then
+  echo "Stopping network"
+  echo
+  deployCC
+elif [ "${MODE}" == "down" ]; then
+  echo "deploying chaincode on channel '${CHANNEL_NAME}'"
+  echo
+  networkDown
+elif [ "${MODE}" == "restart" ]; then
+  networkDown
+  networkUp
+else
+  printHelp
+  exit 1
+fi

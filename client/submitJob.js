@@ -1,10 +1,11 @@
-#!/home/skill/.nvm/versions/node/v8.9.4/bin/node
+#!/home/skill/.config/nvm/versions/node/v13.9.0/bin/node
 
 const config = require('./config');
-const { Client } = require('./utils');
-// const data = require('./data.json');
+const Client = require('./client');
 
-Client(config)
+const client = new Client(config);
+
+client
   .query('submitJob', 'org1', '100', '200')
   .then(console.log)
   .catch(console.error);

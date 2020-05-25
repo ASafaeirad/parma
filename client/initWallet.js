@@ -6,6 +6,10 @@ const Client = require('./client');
 const client = new Client(config);
 
 client
-  .query('queryHosts')
-  .then(console.log)
-  .catch(console.error);
+  .initWallet()
+  .then(() => {
+    console.log('Wallet successfully created');
+  })
+  .catch(error => {
+    console.error(`Failed to create wallet: ${error}`);
+  });

@@ -3,6 +3,10 @@
     "version": "1.0.0",
     "description": "Parma contract implemented in TypeScript",
     "main": "index.js",
+    "repository": {
+        "type": "git",
+        "url": "github.com/parma"
+    },
     "engines": {
         "node": ">=8",
         "npm": ">=5"
@@ -14,7 +18,7 @@
     "author": "Hyperledger",
     "license": "Apache-2.0",
     "dependencies": {
-        "fabric-contract-api": "~1.4.0",
-        "fabric-shim": "~1.4.0"
+        "fabric-contract-api": "^2.0.0",
+        "fabric-shim": "^2.0.0"
     }
 }

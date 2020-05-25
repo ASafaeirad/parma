@@ -31,6 +31,7 @@ report.*.json
 
 # Output of 'npm pack'
 *.tgz
+*.gz
 
 # Yarn Integrity file
 .yarn-integrity
@@ -54,7 +55,10 @@ data.db
 /bin
 **/channel-artifacts/*.tx
 **/channel-artifacts/*.block
+**/artifacts/*.block
+**/artifacts/*.tx
 **/crypto-config/*
+**/organizations/*
 **/docker-compose-e2e.yaml
 **/ledgers
 **/ledgers-backup
@@ -69,3 +73,5 @@ package-lock.json
 
 .deadcode
 client/dataset
+
+connection-org*
